@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 
 import ImagesApiService from '../../ApiService/ApiService';
@@ -12,155 +12,141 @@ import PropTypes from 'prop-types';
 
 const imagesApiService = new ImagesApiService();
 
-export default class ImageGallery extends Component {
-  static propTypes = {
-    openModal: PropTypes.func.isRequired,
-    modalContent: PropTypes.func.isRequired,
-    imageName: PropTypes.string.isRequired,
-  };
+export default function ImageGallery({ imageName, openModal, modalContent }) {
+  const [images, setImages] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('idle');
+  const [moreImage, setMoreImage] = useState(true);
 
-  state = {
-    images: null,
-    laoding: false,
-    error: null,
-    status: 'idle',
-    moreImage: true,
-  };
-
-  componentDidUpdate(prevProps, prevState) {
-    const prevName = prevProps.imageName;
-    const nextName = this.props.imageName;
-
-    if (prevName !== nextName) {
-      // console.log('change image name');
-
-      this.setState({ status: 'pending' });
-
-      imagesApiService.query = this.props.imageName;
-      imagesApiService
-        .fetchImagesApi()
-        .then(image => {
-          if (image.length === 0) {
-            toast.warning(
-              `Sorry, on your request ${this.props.imageName} no results were found.`,
-              {
-                position: 'top-right',
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-              },
-            );
-            this.setState({
-              error: `Sorry, on your request ${this.props.imageName} no results were found.`,
-              loading: true,
-              status: 'rejected',
-            });
-            return;
-          } else {
-            this.setState({
-              images: image,
-              status: 'resolved',
-              loading: true,
-              moreImage: true,
-            });
-          }
-        })
-        .catch(error => this.setState({ error, status: 'rejected' }));
+  useEffect(() => {
+    if (!imageName) {
+      return;
     }
-  }
+    imagesApiService.resetPage();
+    setLoading(true);
+    setStatus('pending');
 
-  handleButtonClick = () => {
+    imagesApiService.query = imageName;
+    imagesApiService
+      .fetchImagesApi()
+      .then(image => {
+        if (image.length === 0) {
+          toast.warning(
+            `Sorry, on your request ${imageName} no results were found.`,
+            {
+              position: 'top-right',
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+            },
+          );
+          setError(
+            `Sorry, on your request ${imageName} no results were found.`,
+          );
+          setLoading(true);
+          setStatus('rejected');
+
+          return;
+        } else {
+          setImages(image);
+          setStatus('resolved');
+          setLoading(true);
+          setMoreImage(true);
+        }
+      })
+      .catch(error => setError(error), setStatus('rejected'));
+  }, [imageName]);
+
+  const handleButtonClick = () => {
     const scrollTo = document.documentElement.scrollHeight - 141;
     imagesApiService
       .fetchImagesApi()
       .then(image => {
-        this.setState(prevState => ({
-          loading: !prevState.loading,
-          images: [...prevState.images, ...image],
-        }));
+        setImages(state => [...state, ...image]);
+        setLoading(true);
+
         window.scrollTo({
           top: scrollTo,
           behavior: 'smooth',
         });
+
         if (image.length < 12) {
-          this.setState({ moreImage: false });
+          setMoreImage(false);
         }
       })
-      .finally(
-        this.setState(prevState => ({
-          loading: !prevState.loading,
-        })),
-      );
+      .finally(setLoading(false));
   };
 
-  render() {
-    const { images, status, loading, moreImage } = this.state;
-    // const { imageName } = this.props;
+  if (status === 'idle') {
+    return (
+      <div
+        style={{
+          textAlign: 'center',
+          fontSize: '18px',
+          marginTop: '20px',
+        }}
+      >
+        Enter what picture you want to find
+      </div>
+    );
+  }
 
-    if (status === 'idle') {
-      return (
-        <div
-          style={{
-            textAlign: 'center',
-            fontSize: '18px',
-            marginTop: '20px',
-          }}
-        >
-          Enter what picture you want to find
-        </div>
-      );
-    }
+  if (status === 'pending') {
+    return (
+      <div
+        style={{
+          textAlign: 'center',
+        }}
+      >
+        <Loader />
+      </div>
+    );
+  }
 
-    if (status === 'pending') {
-      return (
-        <div
-          style={{
-            textAlign: 'center',
-          }}
-        >
-          <Loader />
-        </div>
-      );
-    }
+  if (status === 'rejected') {
+    return (
+      <h2
+        style={{
+          textAlign: 'center',
+        }}
+      >
+        No images found
+      </h2>
+    );
+  }
 
-    if (status === 'rejected') {
-      return (
-        <h2
-          style={{
-            textAlign: 'center',
-          }}
-        >
-          No images found
-        </h2>
-      );
-    }
-
-    if (status === 'resolved') {
-      return (
-        <>
-          <ul className={styles.ImageGallery}>
-            <ImageGalleryItem
-              image={images}
-              openModal={this.props.openModal}
-              modalContent={this.props.modalContent}
-            />
-          </ul>
-          {moreImage ? (
-            <>
-              {loading ? (
-                <Button onClick={this.handleButtonClick}>Load more</Button>
-              ) : (
-                <Loader />
-              )}
-            </>
-          ) : null}
-        </>
-      );
-    }
+  if (status === 'resolved') {
+    return (
+      <>
+        <ul className={styles.ImageGallery}>
+          <ImageGalleryItem
+            image={images}
+            openModal={openModal}
+            modalContent={modalContent}
+          />
+        </ul>
+        {moreImage ? (
+          <>
+            {loading ? (
+              <Button onClick={handleButtonClick}>Load more</Button>
+            ) : (
+              <Loader />
+            )}
+          </>
+        ) : null}
+      </>
+    );
   }
 }
+
+ImageGallery.propTypes = {
+  openModal: PropTypes.func.isRequired,
+  modalContent: PropTypes.func.isRequired,
+  imageName: PropTypes.string.isRequired,
+};
 
 // ImageGallery.propTypes = {
 //   images: PropTypes.arrayOf(

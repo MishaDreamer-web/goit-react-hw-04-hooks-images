@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -8,49 +8,38 @@ import Modal from './Modal';
 
 import './App.module.css';
 
-class App extends Component {
-  state = {
-    imageName: '',
-    showLightbox: false,
-    modalUrl: '',
-    modalAlt: '',
+function App() {
+  const [imageName, setImageName] = useState('');
+  const [showLightBox, setShowLightBox] = useState(false);
+  const [modalUrl, setModalUrl] = useState('');
+  const [modalArt, setModalArt] = useState('');
+
+  const toggleLightbox = () => {
+    setShowLightBox(showLightbox => !showLightbox);
   };
 
-  handleFormSubmit = imageName => {
-    this.setState({ imageName });
+  const modalContent = (url, alt) => {
+    setModalUrl(url);
+    setModalArt(alt);
   };
 
-  toggleLightbox = () => {
-    this.setState(({ showLightbox }) => ({
-      showLightbox: !showLightbox,
-    }));
-  };
+  return (
+    <>
+      <Searchbar onSubmit={setImageName} />
+      <ImageGallery
+        imageName={imageName}
+        openModal={toggleLightbox}
+        modalContent={modalContent}
+      />
 
-  modalContent = (url, alt) => {
-    this.setState({ modalUrl: url, modalAlt: alt });
-  };
-
-  render() {
-    const { showLightbox } = this.state;
-
-    return (
-      <>
-        <Searchbar onSubmit={this.handleFormSubmit} />
-        <ImageGallery
-          imageName={this.state.imageName}
-          openModal={this.toggleLightbox}
-          modalContent={this.modalContent}
-        />
-
-        {showLightbox && (
-          <Modal onClose={this.toggleLightbox} modalContent={this.modalContent}>
-            <img src={this.state.modalUrl} alt={this.state.modalAlt} />
-          </Modal>
-        )}
-        <ToastContainer autoClose={3000} />
-      </>
-    );
-  }
+      {showLightBox && (
+        <Modal onClose={toggleLightbox} modalContent={modalContent}>
+          <img src={modalUrl} alt={modalArt} />
+        </Modal>
+      )}
+      <ToastContainer autoClose={3000} />
+    </>
+  );
 }
 
 export default App;

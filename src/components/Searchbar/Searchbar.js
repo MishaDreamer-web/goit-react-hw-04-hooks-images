@@ -1,23 +1,18 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 // import { ImSearch } from 'react-icons';
 import { toast, Zoom } from 'react-toastify';
 import PropTypes from 'prop-types';
 import styles from './Searchbar.module.css';
 
-export default class Searchbar extends Component {
-  state = {
-    imageName: '',
+export default function Searchbar({ onSubmit }) {
+  const [imageName, setImageName] = useState('');
+
+  const handleChange = e => {
+    setImageName(e.currentTarget.value.toLowerCase());
   };
 
-  handleChange = e => {
-    this.setState({ imageName: e.currentTarget.value.toLowerCase() });
-  };
-
-  handleSubmit = e => {
+  const handleSubmit = e => {
     e.preventDefault();
-
-    const { imageName } = this.state;
-    // console.log(imageName);
 
     if (imageName.trim() === '') {
       return toast.warn('Enter your request', {
@@ -32,35 +27,31 @@ export default class Searchbar extends Component {
       });
     }
 
-    this.props.onSubmit(this.state.imageName);
-    this.setState({ imageName: '' });
+    onSubmit(imageName);
+    setImageName('');
   };
 
-  render() {
-    const { imageName } = this.state;
+  return (
+    <header className={styles.Searchbar}>
+      <form className={styles.SearchForm} onSubmit={handleSubmit}>
+        <button type="submit" className={styles.SearchForm__button}>
+          <span className={styles.SearchForm__button_label}>Search</span>
+        </button>
 
-    return (
-      <header className={styles.Searchbar}>
-        <form className={styles.SearchForm} onSubmit={this.handleSubmit}>
-          <button type="submit" className={styles.SearchForm__button}>
-            <span className={styles.SearchForm__button_label}>Search</span>
-          </button>
-
-          <input
-            className={styles.SearchForm__input}
-            type="text"
-            value={imageName}
-            onChange={this.handleChange}
-            autoComplete="off"
-            autoFocus
-            placeholder="Search images and photos"
-          />
-        </form>
-      </header>
-    );
-  }
-
-  static propTypes = {
-    onSubmit: PropTypes.func.isRequired,
-  };
+        <input
+          className={styles.SearchForm__input}
+          type="text"
+          value={imageName}
+          onChange={handleChange}
+          autoComplete="off"
+          autoFocus
+          placeholder="Search images and photos"
+        />
+      </form>
+    </header>
+  );
 }
+
+Searchbar.propTypes = {
+  onSubmit: PropTypes.func.isRequired,
+};
